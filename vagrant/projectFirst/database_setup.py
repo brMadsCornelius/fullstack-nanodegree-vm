@@ -1,34 +1,28 @@
-import os
-import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
-#from sqlalchemy.ext.declarative import declarative_base    ## DEPRECATED
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
+from flask import Flask
 from sqlalchemy import create_engine
-
-Base = declarative_base()
-
-
-class Restaurant(Base):
-    __tablename__ = 'restaurant'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False) # nullable attribute that if set to false indicates that a column must have a value in order for it to create it 
-
-
-class MenuItem(Base):
-    __tablename__ = 'menu_item'
-
-    name = Column(String(80), nullable=False)
-    id = Column(Integer, primary_key=True)
-    description = Column(String(250))
-    price = Column(String(8))
-    course = Column(String(250))
-    restaurant_id = Column(Integer, ForeignKey('restaurant.id'))
-    restaurant = relationship(Restaurant) # relationship to another table
+from sqlalchemy.orm import sessionmaker
+from database_setup import Base, Restaurant, MenuItem
+app = Flask(__name__)
 
 
 engine = create_engine('sqlite:///restaurantmenu.db')
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine)
+session = DBSession()
 
 
-Base.metadata.create_all(engine)
+@app.route('/')
+@app.route('/hello')
+def HelloWorld():
+    restaurant = session.query(Restaurant).first()
+    items = session.query(MenuItem).filter_by(restaurant_id=restaurant.id)
+    output = ''
+    for i in items:
+        output += i.name
+        output += '</br>'
+    return output
+
+if __name__ == '__main__':
+    app.debug = True
+    app.run(host='0.0.0.0', port=5000)
